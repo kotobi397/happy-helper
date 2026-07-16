@@ -83,8 +83,16 @@ function isValidVerifyToken(token: string): boolean {
 // === Persistent Menu / Get Started setup (Messenger Profile API) ===
 // Call GET /functions/v1/messenger?action=setup_menu to install on all pages.
 async function setupPersistentMenuForToken(token: string): Promise<any> {
-  const profile = {
-    get_started: { payload: "GET_STARTED" },
+  const results: any[] = [];
+  const post = async (payload: any) => {
+    const r = await fetch(
+      `https://graph.facebook.com/v19.0/me/messenger_profile?access_token=${encodeURIComponent(token)}`,
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) },
+    );
+    return { status: r.status, body: await r.text() };
+  };
+  results.push({ step: "get_started", ...(await post({ get_started: { payload: "GET_STARTED" } })) });
+  results.push({ step: "persistent_menu", ...(await post({
     persistent_menu: [
       {
         locale: "default",
@@ -104,13 +112,8 @@ async function setupPersistentMenuForToken(token: string): Promise<any> {
         ],
       },
     ],
-  };
-  const r = await fetch(
-    `https://graph.facebook.com/v19.0/me/messenger_profile?access_token=${encodeURIComponent(token)}`,
-    { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(profile) },
-  );
-  const text = await r.text();
-  return { status: r.status, body: text };
+  })) });
+  return results;
 }
 
 async function setupPersistentMenuAllPages(): Promise<any[]> {
