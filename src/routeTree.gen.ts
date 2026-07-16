@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPersonasRouteImport } from './routes/_authenticated/personas'
 import { Route as AuthenticatedDripsRouteImport } from './routes/_authenticated/drips'
+import { Route as AuthenticatedCommentsRouteImport } from './routes/_authenticated/comments'
 import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authenticated/broadcasts'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicMessengerRouteImport } from './routes/api/public/messenger'
@@ -43,6 +44,11 @@ const AuthenticatedDripsRoute = AuthenticatedDripsRouteImport.update({
   path: '/drips',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCommentsRoute = AuthenticatedCommentsRouteImport.update({
+  id: '/comments',
+  path: '/comments',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBroadcastsRoute = AuthenticatedBroadcastsRouteImport.update({
   id: '/broadcasts',
   path: '/broadcasts',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
+  '/comments': typeof AuthenticatedCommentsRoute
   '/drips': typeof AuthenticatedDripsRoute
   '/personas': typeof AuthenticatedPersonasRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
+  '/comments': typeof AuthenticatedCommentsRoute
   '/drips': typeof AuthenticatedDripsRoute
   '/personas': typeof AuthenticatedPersonasRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/broadcasts': typeof AuthenticatedBroadcastsRoute
+  '/_authenticated/comments': typeof AuthenticatedCommentsRoute
   '/_authenticated/drips': typeof AuthenticatedDripsRoute
   '/_authenticated/personas': typeof AuthenticatedPersonasRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin'
     | '/broadcasts'
+    | '/comments'
     | '/drips'
     | '/personas'
     | '/api/public/fb-comments'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin'
     | '/broadcasts'
+    | '/comments'
     | '/drips'
     | '/personas'
     | '/api/public/fb-comments'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/admin'
     | '/_authenticated/broadcasts'
+    | '/_authenticated/comments'
     | '/_authenticated/drips'
     | '/_authenticated/personas'
     | '/api/public/fb-comments'
@@ -175,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDripsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/comments': {
+      id: '/_authenticated/comments'
+      path: '/comments'
+      fullPath: '/comments'
+      preLoaderRoute: typeof AuthenticatedCommentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/broadcasts': {
       id: '/_authenticated/broadcasts'
       path: '/broadcasts'
@@ -209,6 +228,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBroadcastsRoute: typeof AuthenticatedBroadcastsRoute
+  AuthenticatedCommentsRoute: typeof AuthenticatedCommentsRoute
   AuthenticatedDripsRoute: typeof AuthenticatedDripsRoute
   AuthenticatedPersonasRoute: typeof AuthenticatedPersonasRoute
 }
@@ -216,6 +236,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBroadcastsRoute: AuthenticatedBroadcastsRoute,
+  AuthenticatedCommentsRoute: AuthenticatedCommentsRoute,
   AuthenticatedDripsRoute: AuthenticatedDripsRoute,
   AuthenticatedPersonasRoute: AuthenticatedPersonasRoute,
 }
