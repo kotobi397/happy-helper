@@ -1741,8 +1741,8 @@ async function handleEvent(ev: any, pageId: string | null) {
       return;
     }
     if (postbackPayload === "MENU_TEMP_EMAIL") {
-      await handleTempEmailIntent(admin, senderId, "أعطني بريد وهمي", pageId, async (uid, txt, pid) => {
-        await sendAndLog(admin, uid, txt, pid);
+      await handleTempEmailIntent(admin, senderId, "create", async (txt: string) => {
+        await sendAndLog(admin, senderId, txt, pageId);
       });
       return;
     }
