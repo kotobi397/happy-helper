@@ -17,6 +17,7 @@ import { Route as AuthenticatedDripsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authenticated/broadcasts'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicMessengerRouteImport } from './routes/api/public/messenger'
+import { Route as ApiPublicFbCommentsRouteImport } from './routes/api/public/fb-comments'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -57,6 +58,11 @@ const ApiPublicMessengerRoute = ApiPublicMessengerRouteImport.update({
   path: '/api/public/messenger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFbCommentsRoute = ApiPublicFbCommentsRouteImport.update({
+  id: '/api/public/fb-comments',
+  path: '/api/public/fb-comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/drips': typeof AuthenticatedDripsRoute
   '/personas': typeof AuthenticatedPersonasRoute
+  '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
 }
 export interface FileRoutesByTo {
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/drips': typeof AuthenticatedDripsRoute
   '/personas': typeof AuthenticatedPersonasRoute
+  '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
 }
 export interface FileRoutesById {
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/_authenticated/drips': typeof AuthenticatedDripsRoute
   '/_authenticated/personas': typeof AuthenticatedPersonasRoute
+  '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
 }
 export interface FileRouteTypes {
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/broadcasts'
     | '/drips'
     | '/personas'
+    | '/api/public/fb-comments'
     | '/api/public/messenger'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/broadcasts'
     | '/drips'
     | '/personas'
+    | '/api/public/fb-comments'
     | '/api/public/messenger'
   id:
     | '__root__'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/broadcasts'
     | '/_authenticated/drips'
     | '/_authenticated/personas'
+    | '/api/public/fb-comments'
     | '/api/public/messenger'
   fileRoutesById: FileRoutesById
 }
@@ -122,6 +134,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicFbCommentsRoute: typeof ApiPublicFbCommentsRoute
   ApiPublicMessengerRoute: typeof ApiPublicMessengerRoute
 }
 
@@ -183,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMessengerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/fb-comments': {
+      id: '/api/public/fb-comments'
+      path: '/api/public/fb-comments'
+      fullPath: '/api/public/fb-comments'
+      preLoaderRoute: typeof ApiPublicFbCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -207,6 +227,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicFbCommentsRoute: ApiPublicFbCommentsRoute,
   ApiPublicMessengerRoute: ApiPublicMessengerRoute,
 }
 export const routeTree = rootRouteImport
