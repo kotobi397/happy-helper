@@ -1725,6 +1725,54 @@ async function handleEvent(ev: any, pageId: string | null) {
   // === Postback handling (book reader buttons) ===
   const postbackPayload: string | undefined = ev?.postback?.payload;
   if (postbackPayload) {
+    if (postbackPayload === "GET_STARTED" || postbackPayload === "MENU_HELP") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "👋 أهلاً بك! أنا بوت ذكاء اصطناعي، يمكنني مساعدتك في:\n\n" +
+        "✉️ إنشاء بريد إلكتروني وهمي مؤقت\n" +
+        "🖼️ تحليل الصور والإجابة عن أسئلتك حولها\n" +
+        "📚 البحث عن الكتب من archive.org وقراءتها\n" +
+        "📖 قراءة المانغا\n" +
+        "🎙️ الرد الصوتي على رسائلك الصوتية\n\n" +
+        "استعمل القائمة أسفل الشاشة للوصول السريع، أو اكتب طلبك مباشرة.",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_TEMP_EMAIL") {
+      await handleTempEmailIntent(admin, senderId, "أعطني بريد وهمي", pageId, async (uid, txt, pid) => {
+        await sendAndLog(admin, uid, txt, pid);
+      });
+      return;
+    }
+    if (postbackPayload === "MENU_UPLOAD_PHOTO") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "🖼️ أرسل الآن الصورة (أو عدة صور) التي تريد تحليلها، ثم اكتب سؤالك حولها.",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_SEARCH_BOOK") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "📚 اكتب اسم الكتاب أو الرواية التي تبحث عنها.\nمثال: «اريد كتاب المقدمة» أو «رواية الخوف».",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_SEARCH_MANGA") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "📖 اكتب اسم المانغا التي تريد قراءتها.\nمثال: «مانغا naruto».",
+        pageId,
+      );
+      return;
+    }
     if (postbackPayload.startsWith("BOOK_READ:")) {
       const identifier = postbackPayload.slice("BOOK_READ:".length);
       await handleBookRead(admin, senderId, identifier, pageId);
