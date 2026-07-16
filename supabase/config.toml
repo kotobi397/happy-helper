@@ -1,1 +1,4 @@
 project_id = "znepqljtvkumdqlohbwq"
+
+[functions.fb-comments]
+verify_jwt = false

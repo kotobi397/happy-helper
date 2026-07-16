@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-import { Bot, LogOut, MessageSquare, Users, Activity, Copy, Clock, ThumbsUp, Search, Download, Megaphone, Droplets, ArrowRight, Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import { Bot, LogOut, MessageSquare, Users, Activity, Copy, Clock, ThumbsUp, Search, Download, Megaphone, Droplets, ArrowRight, Plus, Trash2, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -83,6 +83,7 @@ function AdminPage() {
             <NavPill to="/broadcasts" icon={Megaphone} label="البث" />
             <NavPill to="/drips" icon={Droplets} label="حملات" />
             <NavPill to="/personas" icon={Bot} label="شخصيات" />
+            <NavPill to="/comments" icon={MessageCircle} label="تعليقات" />
           </nav>
           <Button variant="ghost" size="sm" onClick={signOut} className="shrink-0">
             <LogOut className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">خروج</span>

@@ -232,6 +232,36 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_reply_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          page_id: string | null
+          reply_delay_ms: number
+          system_prompt: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          page_id?: string | null
+          reply_delay_ms?: number
+          system_prompt?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          page_id?: string | null
+          reply_delay_ms?: number
+          system_prompt?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       drip_campaigns: {
         Row: {
           created_at: string
@@ -667,6 +697,24 @@ export type Database = {
           priority?: number
           system_prompt?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      processed_comments: {
+        Row: {
+          comment_id: string
+          page_id: string | null
+          replied_at: string
+        }
+        Insert: {
+          comment_id: string
+          page_id?: string | null
+          replied_at?: string
+        }
+        Update: {
+          comment_id?: string
+          page_id?: string | null
+          replied_at?: string
         }
         Relationships: []
       }
