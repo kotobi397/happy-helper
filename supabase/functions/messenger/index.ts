@@ -1621,6 +1621,12 @@ Deno.serve(async (req) => {
         });
       }
     }
+    if (url.searchParams.get("action") === "setup_menu") {
+      const results = await setupPersistentMenuAllPages();
+      return new Response(JSON.stringify({ ok: true, results }), {
+        headers: { ...corsHeaders, "content-type": "application/json" },
+      });
+    }
     const mode = url.searchParams.get("hub.mode");
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
