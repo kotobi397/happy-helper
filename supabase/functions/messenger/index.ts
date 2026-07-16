@@ -100,15 +100,7 @@ async function setupPersistentMenuForToken(token: string): Promise<any> {
         call_to_actions: [
           { type: "postback", title: "✉️ بريد وهمي", payload: "MENU_TEMP_EMAIL" },
           { type: "postback", title: "🖼️ رفع صورة", payload: "MENU_UPLOAD_PHOTO" },
-          {
-            type: "nested",
-            title: "📚 المزيد",
-            call_to_actions: [
-              { type: "postback", title: "📚 بحث عن كتاب", payload: "MENU_SEARCH_BOOK" },
-              { type: "postback", title: "📖 بحث عن مانغا", payload: "MENU_SEARCH_MANGA" },
-              { type: "postback", title: "❓ مساعدة", payload: "MENU_HELP" },
-            ],
-          },
+          { type: "postback", title: "📚 بحث عن كتاب", payload: "MENU_SEARCH_BOOK" },
         ],
       },
     ],
