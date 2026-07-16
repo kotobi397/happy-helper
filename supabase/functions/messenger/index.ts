@@ -79,6 +79,56 @@ function isValidVerifyToken(token: string): boolean {
   const v2 = Deno.env.get("FB_VERIFY_TOKEN_2");
   return (!!v1 && token === v1) || (!!v2 && token === v2);
 }
+
+// === Persistent Menu / Get Started setup (Messenger Profile API) ===
+// Call GET /functions/v1/messenger?action=setup_menu to install on all pages.
+async function setupPersistentMenuForToken(token: string): Promise<any> {
+  const profile = {
+    get_started: { payload: "GET_STARTED" },
+    persistent_menu: [
+      {
+        locale: "default",
+        composer_input_disabled: false,
+        call_to_actions: [
+          { type: "postback", title: "✉️ بريد وهمي", payload: "MENU_TEMP_EMAIL" },
+          { type: "postback", title: "🖼️ رفع صورة", payload: "MENU_UPLOAD_PHOTO" },
+          {
+            type: "nested",
+            title: "📚 المزيد",
+            call_to_actions: [
+              { type: "postback", title: "📚 بحث عن كتاب", payload: "MENU_SEARCH_BOOK" },
+              { type: "postback", title: "📖 بحث عن مانغا", payload: "MENU_SEARCH_MANGA" },
+              { type: "postback", title: "❓ مساعدة", payload: "MENU_HELP" },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const r = await fetch(
+    `https://graph.facebook.com/v19.0/me/messenger_profile?access_token=${encodeURIComponent(token)}`,
+    { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(profile) },
+  );
+  const text = await r.text();
+  return { status: r.status, body: text };
+}
+
+async function setupPersistentMenuAllPages(): Promise<any[]> {
+  const tokens = [
+    Deno.env.get("FB_PAGE_ACCESS_TOKEN"),
+    Deno.env.get("FB_PAGE_ACCESS_TOKEN_2"),
+  ].filter((t): t is string => !!t && t.length > 0);
+  const results: any[] = [];
+  for (const tok of tokens) {
+    try {
+      const r = await setupPersistentMenuForToken(tok);
+      results.push(r);
+    } catch (e) {
+      results.push({ error: String(e) });
+    }
+  }
+  return results;
+}
 // Bot display name per page. Page 1 (FB_PAGE_ACCESS_TOKEN) => SolveBot GPT,
 // Page 2 (FB_PAGE_ACCESS_TOKEN_2) => BrainBot GPT.
 async function getBotNameForPage(pageId: string | null): Promise<string> {
