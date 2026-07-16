@@ -79,6 +79,51 @@ function isValidVerifyToken(token: string): boolean {
   const v2 = Deno.env.get("FB_VERIFY_TOKEN_2");
   return (!!v1 && token === v1) || (!!v2 && token === v2);
 }
+
+// === Persistent Menu / Get Started setup (Messenger Profile API) ===
+// Call GET /functions/v1/messenger?action=setup_menu to install on all pages.
+async function setupPersistentMenuForToken(token: string): Promise<any> {
+  const results: any[] = [];
+  const post = async (payload: any) => {
+    const r = await fetch(
+      `https://graph.facebook.com/v19.0/me/messenger_profile?access_token=${encodeURIComponent(token)}`,
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) },
+    );
+    return { status: r.status, body: await r.text() };
+  };
+  results.push({ step: "get_started", ...(await post({ get_started: { payload: "GET_STARTED" } })) });
+  results.push({ step: "persistent_menu", ...(await post({
+    persistent_menu: [
+      {
+        locale: "default",
+        composer_input_disabled: false,
+        call_to_actions: [
+          { type: "postback", title: "✉️ بريد وهمي", payload: "MENU_TEMP_EMAIL" },
+          { type: "postback", title: "🖼️ رفع صورة", payload: "MENU_UPLOAD_PHOTO" },
+          { type: "postback", title: "📚 بحث عن كتاب", payload: "MENU_SEARCH_BOOK" },
+        ],
+      },
+    ],
+  })) });
+  return results;
+}
+
+async function setupPersistentMenuAllPages(): Promise<any[]> {
+  const tokens = [
+    Deno.env.get("FB_PAGE_ACCESS_TOKEN"),
+    Deno.env.get("FB_PAGE_ACCESS_TOKEN_2"),
+  ].filter((t): t is string => !!t && t.length > 0);
+  const results: any[] = [];
+  for (const tok of tokens) {
+    try {
+      const r = await setupPersistentMenuForToken(tok);
+      results.push(r);
+    } catch (e) {
+      results.push({ error: String(e) });
+    }
+  }
+  return results;
+}
 // Bot display name per page. Page 1 (FB_PAGE_ACCESS_TOKEN) => SolveBot GPT,
 // Page 2 (FB_PAGE_ACCESS_TOKEN_2) => BrainBot GPT.
 async function getBotNameForPage(pageId: string | null): Promise<string> {
@@ -1621,6 +1666,12 @@ Deno.serve(async (req) => {
         });
       }
     }
+    if (url.searchParams.get("action") === "setup_menu") {
+      const results = await setupPersistentMenuAllPages();
+      return new Response(JSON.stringify({ ok: true, results }), {
+        headers: { ...corsHeaders, "content-type": "application/json" },
+      });
+    }
     const mode = url.searchParams.get("hub.mode");
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
@@ -1719,6 +1770,54 @@ async function handleEvent(ev: any, pageId: string | null) {
   // === Postback handling (book reader buttons) ===
   const postbackPayload: string | undefined = ev?.postback?.payload;
   if (postbackPayload) {
+    if (postbackPayload === "GET_STARTED" || postbackPayload === "MENU_HELP") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "👋 أهلاً بك! أنا بوت ذكاء اصطناعي، يمكنني مساعدتك في:\n\n" +
+        "✉️ إنشاء بريد إلكتروني وهمي مؤقت\n" +
+        "🖼️ تحليل الصور والإجابة عن أسئلتك حولها\n" +
+        "📚 البحث عن الكتب من archive.org وقراءتها\n" +
+        "📖 قراءة المانغا\n" +
+        "🎙️ الرد الصوتي على رسائلك الصوتية\n\n" +
+        "استعمل القائمة أسفل الشاشة للوصول السريع، أو اكتب طلبك مباشرة.",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_TEMP_EMAIL") {
+      await handleTempEmailIntent(admin, senderId, "create", async (txt: string) => {
+        await sendAndLog(admin, senderId, txt, pageId);
+      });
+      return;
+    }
+    if (postbackPayload === "MENU_UPLOAD_PHOTO") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "🖼️ أرسل الآن الصورة (أو عدة صور) التي تريد تحليلها، ثم اكتب سؤالك حولها.",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_SEARCH_BOOK") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "📚 اكتب اسم الكتاب أو الرواية التي تبحث عنها.\nمثال: «اريد كتاب المقدمة» أو «رواية الخوف».",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_SEARCH_MANGA") {
+      await sendAndLog(
+        admin,
+        senderId,
+        "📖 اكتب اسم المانغا التي تريد قراءتها.\nمثال: «مانغا naruto».",
+        pageId,
+      );
+      return;
+    }
     if (postbackPayload.startsWith("BOOK_READ:")) {
       const identifier = postbackPayload.slice("BOOK_READ:".length);
       await handleBookRead(admin, senderId, identifier, pageId);
