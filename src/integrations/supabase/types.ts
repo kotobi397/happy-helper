@@ -763,6 +763,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stego_hidden_messages: {
+        Row: {
+          created_at: string
+          id: string
+          owner: string | null
+          phash: string
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner?: string | null
+          phash: string
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner?: string | null
+          phash?: string
+          secret?: string
+        }
+        Relationships: []
+      }
       stego_sessions: {
         Row: {
           created_at: string
