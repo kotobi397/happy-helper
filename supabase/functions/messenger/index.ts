@@ -134,7 +134,95 @@ async function setupPersistentMenuAllPages(): Promise<any[]> {
 }
 
 // === Steganography (hide/extract text inside a PNG using LSB of R channel) ===
+// Also stores a compression-proof fallback keyed by a perceptual hash (dHash)
+// so the message can still be recovered after Facebook re-compresses the image.
 const STEGO_MAGIC = 0x53544731; // "STG1"
+
+// 64-bit dHash: resize to 9x8, grayscale, compare each pixel to its right
+// neighbor. Robust to JPEG re-encoding, resizing, and mild color shifts —
+// exactly the transformations Facebook applies to shared images.
+function computePhash(img: Image): Uint8Array {
+  const W = 9, H = 8;
+  const small = (img.clone() as Image).resize(W, H);
+  const bmp = small.bitmap as unknown as Uint8Array;
+  const gray = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const r = bmp[i * 4], g = bmp[i * 4 + 1], b = bmp[i * 4 + 2];
+    gray[i] = (r * 299 + g * 587 + b * 114) / 1000 | 0;
+  }
+  const out = new Uint8Array(8);
+  let bit = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W - 1; x++) {
+      const left = gray[y * W + x];
+      const right = gray[y * W + x + 1];
+      if (left > right) out[bit >> 3] |= (1 << (7 - (bit & 7)));
+      bit++;
+    }
+  }
+  return out;
+}
+
+function hamming(a: Uint8Array, b: Uint8Array): number {
+  let d = 0;
+  for (let i = 0; i < a.length; i++) {
+    let x = a[i] ^ b[i];
+    x = x - ((x >> 1) & 0x55);
+    x = (x & 0x33) + ((x >> 2) & 0x33);
+    d += ((x + (x >> 4)) & 0x0F);
+  }
+  return d;
+}
+
+function bytesToHex(a: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < a.length; i++) s += a[i].toString(16).padStart(2, "0");
+  return s;
+}
+
+async function storePhashSecret(admin: any, phash: Uint8Array, secret: string, owner: string) {
+  try {
+    await admin.from("stego_hidden_messages").insert({
+      phash: `\\x${bytesToHex(phash)}`,
+      secret, owner,
+    });
+  } catch (e) {
+    console.error("[messenger] stego phash store failed", e);
+  }
+}
+
+async function lookupBySimilarPhash(admin: any, phash: Uint8Array): Promise<string | null> {
+  try {
+    const { data } = await admin
+      .from("stego_hidden_messages")
+      .select("phash, secret, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (!data?.length) return null;
+    let best: { secret: string; dist: number } | null = null;
+    for (const row of data as any[]) {
+      const raw = row.phash;
+      let bytes: Uint8Array;
+      if (typeof raw === "string") {
+        const hex = raw.startsWith("\\x") ? raw.slice(2) : raw;
+        bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+      } else if (raw instanceof Uint8Array) {
+        bytes = raw;
+      } else continue;
+      if (bytes.length !== phash.length) continue;
+      const d = hamming(bytes, phash);
+      if (!best || d < best.dist) best = { secret: row.secret, dist: d };
+    }
+    // dHash of 64 bits: ≤12 bits difference is a confident match under
+    // Facebook's JPEG re-encode + resize; above that we treat as no match.
+    if (best && best.dist <= 12) return best.secret;
+    return null;
+  } catch (e) {
+    console.error("[messenger] stego phash lookup failed", e);
+    return null;
+  }
+}
 
 function stegoEmbed(bitmap: Uint8Array, payload: Uint8Array): boolean {
   const totalBits = (4 + payload.length) * 8;
