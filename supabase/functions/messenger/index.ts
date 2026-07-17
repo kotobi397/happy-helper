@@ -313,14 +313,10 @@ async function stegoHideAndSend(
     await sendAndLog(admin, senderId, "خطأ داخلي أثناء حفظ الصورة.", pageId, userMsgStart);
     return false;
   }
-  // Compression-proof fallback: store the secret keyed by a perceptual hash
-  // of the image we just produced. Even if Facebook re-compresses the image,
-  // the extractor can still recover the message via nearest-hash lookup.
-  try {
-    const phash = computePhash(img);
-    await storePhashSecret(admin, phash, secret, senderId);
-  } catch (e) {
-    console.error("[messenger] stego phash compute failed", e);
+  // Store the pre-encode phash (LSB payload is destroyed by JPEG; DB fallback carries the message).
+  if (phashForStore) {
+    try { await storePhashSecret(admin, phashForStore, secret, senderId); }
+    catch (e) { console.error("[messenger] stego phash store failed", e); }
   }
   const { data: signed } = await admin.storage.from("bot-media").createSignedUrl(path, 3600);
   if (!signed?.signedUrl) {
