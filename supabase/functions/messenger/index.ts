@@ -297,24 +297,26 @@ async function stegoHideAndSend(
       pageId, userMsgStart);
     return false;
   }
-  const outBuf = await img.encode();
-  const path = `stego/${senderId}/${Date.now()}.png`;
+  // Compute the perceptual hash BEFORE re-encoding so it matches what the
+  // receiver will hash from the (possibly Facebook-compressed) JPEG copy.
+  let phashForStore: Uint8Array | null = null;
+  try { phashForStore = computePhash(img); } catch (e) { console.error("[messenger] stego phash compute failed", e); }
+  // Output JPEG (universally supported by Messenger — PNGs are sometimes
+  // rejected as "GIF / unsupported format" when the user tries to re-share).
+  const outBuf = await (img as any).encodeJPEG(92);
+  const path = `stego/${senderId}/${Date.now()}.jpg`;
   const { error: upErr } = await admin.storage.from("bot-media").upload(path, outBuf, {
-    contentType: "image/png", upsert: false,
+    contentType: "image/jpeg", upsert: false,
   });
   if (upErr) {
     console.error("[messenger] stego upload failed", upErr);
     await sendAndLog(admin, senderId, "خطأ داخلي أثناء حفظ الصورة.", pageId, userMsgStart);
     return false;
   }
-  // Compression-proof fallback: store the secret keyed by a perceptual hash
-  // of the image we just produced. Even if Facebook re-compresses the image,
-  // the extractor can still recover the message via nearest-hash lookup.
-  try {
-    const phash = computePhash(img);
-    await storePhashSecret(admin, phash, secret, senderId);
-  } catch (e) {
-    console.error("[messenger] stego phash compute failed", e);
+  // Store the pre-encode phash (LSB payload is destroyed by JPEG; DB fallback carries the message).
+  if (phashForStore) {
+    try { await storePhashSecret(admin, phashForStore, secret, senderId); }
+    catch (e) { console.error("[messenger] stego phash store failed", e); }
   }
   const { data: signed } = await admin.storage.from("bot-media").createSignedUrl(path, 3600);
   if (!signed?.signedUrl) {
