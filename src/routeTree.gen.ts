@@ -17,6 +17,7 @@ import { Route as AuthenticatedDripsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCommentsRouteImport } from './routes/_authenticated/comments'
 import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authenticated/broadcasts'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicPhoneLookupRouteImport } from './routes/api/public/phone-lookup'
 import { Route as ApiPublicMessengerRouteImport } from './routes/api/public/messenger'
 import { Route as ApiPublicFbCommentsRouteImport } from './routes/api/public/fb-comments'
 
@@ -59,6 +60,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicPhoneLookupRoute = ApiPublicPhoneLookupRouteImport.update({
+  id: '/api/public/phone-lookup',
+  path: '/api/public/phone-lookup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMessengerRoute = ApiPublicMessengerRouteImport.update({
   id: '/api/public/messenger',
   path: '/api/public/messenger',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/personas': typeof AuthenticatedPersonasRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/phone-lookup': typeof ApiPublicPhoneLookupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/personas': typeof AuthenticatedPersonasRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/phone-lookup': typeof ApiPublicPhoneLookupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/personas': typeof AuthenticatedPersonasRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/phone-lookup': typeof ApiPublicPhoneLookupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/personas'
     | '/api/public/fb-comments'
     | '/api/public/messenger'
+    | '/api/public/phone-lookup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/personas'
     | '/api/public/fb-comments'
     | '/api/public/messenger'
+    | '/api/public/phone-lookup'
   id:
     | '__root__'
     | '/'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/personas'
     | '/api/public/fb-comments'
     | '/api/public/messenger'
+    | '/api/public/phone-lookup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -148,6 +160,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicFbCommentsRoute: typeof ApiPublicFbCommentsRoute
   ApiPublicMessengerRoute: typeof ApiPublicMessengerRoute
+  ApiPublicPhoneLookupRoute: typeof ApiPublicPhoneLookupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/phone-lookup': {
+      id: '/api/public/phone-lookup'
+      path: '/api/public/phone-lookup'
+      fullPath: '/api/public/phone-lookup'
+      preLoaderRoute: typeof ApiPublicPhoneLookupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/messenger': {
       id: '/api/public/messenger'
       path: '/api/public/messenger'
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicFbCommentsRoute: ApiPublicFbCommentsRoute,
   ApiPublicMessengerRoute: ApiPublicMessengerRoute,
+  ApiPublicPhoneLookupRoute: ApiPublicPhoneLookupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

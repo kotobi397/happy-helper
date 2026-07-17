@@ -125,8 +125,7 @@ export const Route = createFileRoute("/api/public/phone-lookup")({
 
         if (!target) return json({ error: "lookup not found" }, 404);
 
-        const update: Record<string, any> = { status, owner_name: ownerName, carrier, error };
-        if (country) update.country = country;
+        const update = { status, owner_name: ownerName, carrier, error, ...(country ? { country } : {}) };
         const { error: upErr } = await supabaseAdmin
           .from("phone_lookups")
           .update(update)
