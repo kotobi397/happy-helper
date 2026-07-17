@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedPhoneLookupRouteImport } from './routes/_authenticated/phone-lookup'
 import { Route as AuthenticatedPersonasRouteImport } from './routes/_authenticated/personas'
 import { Route as AuthenticatedDripsRouteImport } from './routes/_authenticated/drips'
 import { Route as AuthenticatedCommentsRouteImport } from './routes/_authenticated/comments'
@@ -35,6 +36,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPhoneLookupRoute =
+  AuthenticatedPhoneLookupRouteImport.update({
+    id: '/phone-lookup',
+    path: '/phone-lookup',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPersonasRoute = AuthenticatedPersonasRouteImport.update({
   id: '/personas',
   path: '/personas',
@@ -84,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/comments': typeof AuthenticatedCommentsRoute
   '/drips': typeof AuthenticatedDripsRoute
   '/personas': typeof AuthenticatedPersonasRoute
+  '/phone-lookup': typeof AuthenticatedPhoneLookupRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
   '/api/public/phone-lookup': typeof ApiPublicPhoneLookupRoute
@@ -96,6 +104,7 @@ export interface FileRoutesByTo {
   '/comments': typeof AuthenticatedCommentsRoute
   '/drips': typeof AuthenticatedDripsRoute
   '/personas': typeof AuthenticatedPersonasRoute
+  '/phone-lookup': typeof AuthenticatedPhoneLookupRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
   '/api/public/phone-lookup': typeof ApiPublicPhoneLookupRoute
@@ -110,6 +119,7 @@ export interface FileRoutesById {
   '/_authenticated/comments': typeof AuthenticatedCommentsRoute
   '/_authenticated/drips': typeof AuthenticatedDripsRoute
   '/_authenticated/personas': typeof AuthenticatedPersonasRoute
+  '/_authenticated/phone-lookup': typeof AuthenticatedPhoneLookupRoute
   '/api/public/fb-comments': typeof ApiPublicFbCommentsRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
   '/api/public/phone-lookup': typeof ApiPublicPhoneLookupRoute
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/drips'
     | '/personas'
+    | '/phone-lookup'
     | '/api/public/fb-comments'
     | '/api/public/messenger'
     | '/api/public/phone-lookup'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/drips'
     | '/personas'
+    | '/phone-lookup'
     | '/api/public/fb-comments'
     | '/api/public/messenger'
     | '/api/public/phone-lookup'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comments'
     | '/_authenticated/drips'
     | '/_authenticated/personas'
+    | '/_authenticated/phone-lookup'
     | '/api/public/fb-comments'
     | '/api/public/messenger'
     | '/api/public/phone-lookup'
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/phone-lookup': {
+      id: '/_authenticated/phone-lookup'
+      path: '/phone-lookup'
+      fullPath: '/phone-lookup'
+      preLoaderRoute: typeof AuthenticatedPhoneLookupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/personas': {
       id: '/_authenticated/personas'
@@ -251,6 +271,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCommentsRoute: typeof AuthenticatedCommentsRoute
   AuthenticatedDripsRoute: typeof AuthenticatedDripsRoute
   AuthenticatedPersonasRoute: typeof AuthenticatedPersonasRoute
+  AuthenticatedPhoneLookupRoute: typeof AuthenticatedPhoneLookupRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -259,6 +280,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCommentsRoute: AuthenticatedCommentsRoute,
   AuthenticatedDripsRoute: AuthenticatedDripsRoute,
   AuthenticatedPersonasRoute: AuthenticatedPersonasRoute,
+  AuthenticatedPhoneLookupRoute: AuthenticatedPhoneLookupRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

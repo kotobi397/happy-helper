@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-import { Bot, LogOut, MessageSquare, Users, Activity, Copy, Clock, ThumbsUp, Search, Download, Megaphone, Droplets, ArrowRight, Plus, Trash2, Eye, EyeOff, MessageCircle } from "lucide-react";
+import { Bot, LogOut, MessageSquare, Users, Activity, Copy, Clock, ThumbsUp, Search, Download, Megaphone, Droplets, ArrowRight, Plus, Trash2, Eye, EyeOff, MessageCircle, RadarIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
