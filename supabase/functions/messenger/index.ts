@@ -2121,6 +2121,105 @@ async function handleEvent(ev: any, pageId: string | null) {
     reply_to_mid: repliedToMid,
   });
 
+  // === Steganography flow (hide/extract secret text inside a PNG) ===
+  {
+    const normalizedTxt = text ? text.replace(/[.،,!؟?]+$/g, "").trim() : "";
+    // Text triggers to start the flow (mirror menu buttons)
+    if (!imageUrls.length && /^(?:اخفاء رسالة|إخفاء رسالة|رسالة سرية|hide message|steganography)$/i.test(normalizedTxt)) {
+      await admin.from("stego_sessions").upsert(
+        { facebook_user_id: senderId, state: "await_image_hide", pending_image_path: null },
+        { onConflict: "facebook_user_id" },
+      );
+      await sendAndLog(admin, senderId,
+        "🔐 أرسل الصورة التي تريد إخفاء الرسالة داخلها، ثم بعدها اكتب الرسالة السرية.",
+        pageId, userMsgStart);
+      return;
+    }
+    if (!imageUrls.length && /^(?:استخراج رسالة|إستخراج رسالة|extract message)$/i.test(normalizedTxt)) {
+      await admin.from("stego_sessions").upsert(
+        { facebook_user_id: senderId, state: "await_image_extract", pending_image_path: null },
+        { onConflict: "facebook_user_id" },
+      );
+      await sendAndLog(admin, senderId,
+        "🔓 أرسل الصورة التي تحتوي على الرسالة المخفية.",
+        pageId, userMsgStart);
+      return;
+    }
+    // Active session handling
+    const { data: stegoRow } = await admin
+      .from("stego_sessions").select("state,pending_image_path")
+      .eq("facebook_user_id", senderId).maybeSingle();
+    if (stegoRow) {
+      // Cancel command
+      if (text && /^(?:الغاء|إلغاء|cancel|توقف|إيقاف|ايقاف)$/i.test(normalizedTxt)) {
+        await admin.from("stego_sessions").delete().eq("facebook_user_id", senderId);
+        await sendAndLog(admin, senderId, "تم إلغاء العملية ✅", pageId, userMsgStart);
+        return;
+      }
+      // Extract flow: image received → decode and send hidden text
+      if (stegoRow.state === "await_image_extract") {
+        if (imageUrls.length === 0) {
+          await sendAndLog(admin, senderId, "أرسل الصورة التي تحتوي على الرسالة المخفية أو اكتب «إلغاء».", pageId, userMsgStart);
+          return;
+        }
+        await stegoExtractAndSend(admin, senderId, pageId, imageUrls[0], userMsgStart);
+        await admin.from("stego_sessions").delete().eq("facebook_user_id", senderId);
+        return;
+      }
+      // Hide flow step 1: waiting for the cover image
+      if (stegoRow.state === "await_image_hide") {
+        if (imageUrls.length === 0) {
+          await sendAndLog(admin, senderId, "أرسل الصورة أولاً 🏞️ ثم اكتب الرسالة السرية.", pageId, userMsgStart);
+          return;
+        }
+        // Download and stash the cover image in storage so we can use it after the text arrives
+        try {
+          const r = await fetch(imageUrls[0]);
+          if (!r.ok) throw new Error(`fetch ${r.status}`);
+          const bytes = new Uint8Array(await r.arrayBuffer());
+          const path = `stego-src/${senderId}/${Date.now()}.bin`;
+          const ct = r.headers.get("content-type") || "image/jpeg";
+          const { error: upErr } = await admin.storage.from("bot-media").upload(path, bytes, {
+            contentType: ct, upsert: false,
+          });
+          if (upErr) throw upErr;
+          await admin.from("stego_sessions").upsert(
+            { facebook_user_id: senderId, state: "await_text", pending_image_path: path },
+            { onConflict: "facebook_user_id" },
+          );
+          await sendAndLog(admin, senderId, "تمام ✅ الآن اكتب الرسالة السرية التي تريد إخفاءها ✍️", pageId, userMsgStart);
+        } catch (e) {
+          console.error("[messenger] stego stash failed", e);
+          await sendAndLog(admin, senderId, "تعذّر حفظ الصورة، حاول مرة أخرى.", pageId, userMsgStart);
+        }
+        return;
+      }
+      // Hide flow step 2: waiting for the secret text
+      if (stegoRow.state === "await_text") {
+        if (!text) {
+          await sendAndLog(admin, senderId, "اكتب الرسالة السرية كنص ✍️", pageId, userMsgStart);
+          return;
+        }
+        const srcPath = stegoRow.pending_image_path;
+        if (!srcPath) {
+          await admin.from("stego_sessions").delete().eq("facebook_user_id", senderId);
+          await sendAndLog(admin, senderId, "انتهت الجلسة، ابدأ من جديد من القائمة.", pageId, userMsgStart);
+          return;
+        }
+        const { data: signed } = await admin.storage.from("bot-media").createSignedUrl(srcPath, 300);
+        if (!signed?.signedUrl) {
+          await admin.from("stego_sessions").delete().eq("facebook_user_id", senderId);
+          await sendAndLog(admin, senderId, "انتهت صلاحية الصورة، ابدأ من جديد.", pageId, userMsgStart);
+          return;
+        }
+        await stegoHideAndSend(admin, senderId, pageId, signed.signedUrl, text, userMsgStart);
+        await admin.storage.from("bot-media").remove([srcPath]).catch(() => {});
+        await admin.from("stego_sessions").delete().eq("facebook_user_id", senderId);
+        return;
+      }
+    }
+  }
+
   // Send the page's latest post to this user (once per unique post).
   maybeSendLatestPagePost(admin, senderId, pageId).catch((e) =>
     console.error("[messenger] latest post send err", e)
