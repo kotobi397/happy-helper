@@ -763,6 +763,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stego_sessions: {
+        Row: {
+          created_at: string
+          facebook_user_id: string
+          pending_image_path: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facebook_user_id: string
+          pending_image_path?: string | null
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facebook_user_id?: string
+          pending_image_path?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       temp_emails: {
         Row: {
           active: boolean
