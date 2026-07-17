@@ -335,7 +335,7 @@ async function stegoHideAndSend(
     }),
   });
   await sendAndLog(admin, senderId,
-    "✅ تم إخفاء الرسالة داخل الصورة.\n\n⚠️ ملاحظة: احفظ الصورة كملف PNG وأرسلها كـ«ملف» (Attachment) وليس كصورة مضغوطة، لأن فيسبوك يضغط الصور المنشورة على المنشورات ويُتلف الرسالة المخفية. لاستخراج الرسالة يكفي إعادة إرسالها للبوت واختيار «استخراج رسالة».",
+    "✅ تم إخفاء الرسالة داخل الصورة.\n\n📌 يمكنك مشاركتها بأي طريقة (نشر، إعادة إرسال، تحميل من فيسبوك). حتى لو ضغطها فيسبوك وأتلف البيانات المدمجة داخل البكسلات، البوت يحتفظ بنسخة احتياطية مرتبطة ببصمة بصرية للصورة، ويستخرج الرسالة عند إعادة إرسال الصورة إليه واختيار «استخراج رسالة».",
     pageId, userMsgStart);
   return true;
 }
@@ -358,18 +358,29 @@ async function stegoExtractAndSend(
     return;
   }
   const bitmap = img.bitmap as unknown as Uint8Array;
+  // 1) Try direct LSB extraction (works only on unmodified PNGs).
   const extracted = stegoExtract(bitmap);
-  if (!extracted || extracted.length < 4) {
-    await sendAndLog(admin, senderId, "لم أجد أي رسالة مخفية في هذه الصورة. تأكّد أنها الصورة الأصلية غير المضغوطة.", pageId, userMsgStart);
-    return;
+  if (extracted && extracted.length >= 4) {
+    const magic = new DataView(extracted.buffer, extracted.byteOffset, 4).getUint32(0, false);
+    if (magic === STEGO_MAGIC) {
+      const text = new TextDecoder().decode(extracted.slice(4));
+      await sendAndLog(admin, senderId, `🔓 الرسالة المخفية:\n\n${text}`, pageId, userMsgStart);
+      return;
+    }
   }
-  const magic = new DataView(extracted.buffer, extracted.byteOffset, 4).getUint32(0, false);
-  if (magic !== STEGO_MAGIC) {
-    await sendAndLog(admin, senderId, "لم أجد أي رسالة مخفية في هذه الصورة. تأكّد أنها الصورة الأصلية غير المضغوطة.", pageId, userMsgStart);
-    return;
+  // 2) Fallback: perceptual-hash lookup. Recovers the message even after
+  // Facebook re-compresses/resizes the image and destroys the LSB payload.
+  try {
+    const phash = computePhash(img);
+    const secret = await lookupBySimilarPhash(admin, phash);
+    if (secret) {
+      await sendAndLog(admin, senderId, `🔓 الرسالة المخفية (استُعيدت من النسخة المضغوطة):\n\n${secret}`, pageId, userMsgStart);
+      return;
+    }
+  } catch (e) {
+    console.error("[messenger] stego phash extract failed", e);
   }
-  const text = new TextDecoder().decode(extracted.slice(4));
-  await sendAndLog(admin, senderId, `🔓 الرسالة المخفية:\n\n${text}`, pageId, userMsgStart);
+  await sendAndLog(admin, senderId, "لم أجد أي رسالة مخفية في هذه الصورة.", pageId, userMsgStart);
 }
 // Bot display name per page. Page 1 (FB_PAGE_ACCESS_TOKEN) => SolveBot GPT,
 // Page 2 (FB_PAGE_ACCESS_TOKEN_2) => BrainBot GPT.
