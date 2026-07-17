@@ -84,6 +84,7 @@ function AdminPage() {
             <NavPill to="/drips" icon={Droplets} label="حملات" />
             <NavPill to="/personas" icon={Bot} label="شخصيات" />
             <NavPill to="/comments" icon={MessageCircle} label="تعليقات" />
+            <NavPill to="/phone-lookup" icon={RadarIcon} label="كاشف الأرقام" />
           </nav>
           <Button variant="ghost" size="sm" onClick={signOut} className="shrink-0">
             <LogOut className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">خروج</span>
