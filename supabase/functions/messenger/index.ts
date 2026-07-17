@@ -2547,6 +2547,27 @@ async function handleEvent(ev: any, pageId: string | null) {
       if (q.length >= 2) { await handleMapSearch(admin, senderId, q, pageId, userMsgStart, false); return; }
     }
 
+    // === Phone reverse-lookup: "كشف رقم +2126..." / "phone lookup +212..." ===
+    {
+      const phoneIntent = /(?:كشف\s*(?:عن\s*)?(?:الرقم|رقم)|كاشف\s*(?:الأرقام|الارقام|الرقم)|من\s*صاحب\s*الرقم|phone\s*lookup|reverse\s*lookup|check\s*number)/i;
+      const phoneMatch = text.match(/(\+?\d[\d\s\-().]{6,20}\d)/);
+      if (phoneIntent.test(text) && phoneMatch) {
+        const raw = phoneMatch[1].replace(/[^\d+]/g, "");
+        const phone = raw.startsWith("+") ? raw : `+${raw.replace(/^0+/, "")}`;
+        const country = (phone.match(/^\+\d{1,4}/) ?? [null])[0];
+        await admin.from("phone_lookups").insert({
+          phone, country, status: "pending",
+          facebook_user_id: senderId, page_id: pageId,
+        });
+        await sendAndLog(admin, senderId,
+          `🕵️ استلمت طلبك! جاري البحث في الدفاتر السرية عن الرقم ${phone}...\nهاسيبك ثواني وأجيلك بالخبر 👀`,
+          pageId, userMsgStart);
+        return;
+      }
+    }
+
+
+
 
     const cls = await classifyUnifiedIntent(text, lastBot, hasActive);
     if (cls) {

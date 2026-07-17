@@ -700,6 +700,51 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_lookups: {
+        Row: {
+          carrier: string | null
+          country: string | null
+          created_at: string
+          error: string | null
+          facebook_user_id: string | null
+          id: string
+          owner_name: string | null
+          page_id: string | null
+          phone: string
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          carrier?: string | null
+          country?: string | null
+          created_at?: string
+          error?: string | null
+          facebook_user_id?: string | null
+          id?: string
+          owner_name?: string | null
+          page_id?: string | null
+          phone: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          carrier?: string | null
+          country?: string | null
+          created_at?: string
+          error?: string | null
+          facebook_user_id?: string | null
+          id?: string
+          owner_name?: string | null
+          page_id?: string | null
+          phone?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       processed_comments: {
         Row: {
           comment_id: string
