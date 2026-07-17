@@ -134,7 +134,95 @@ async function setupPersistentMenuAllPages(): Promise<any[]> {
 }
 
 // === Steganography (hide/extract text inside a PNG using LSB of R channel) ===
+// Also stores a compression-proof fallback keyed by a perceptual hash (dHash)
+// so the message can still be recovered after Facebook re-compresses the image.
 const STEGO_MAGIC = 0x53544731; // "STG1"
+
+// 64-bit dHash: resize to 9x8, grayscale, compare each pixel to its right
+// neighbor. Robust to JPEG re-encoding, resizing, and mild color shifts —
+// exactly the transformations Facebook applies to shared images.
+function computePhash(img: Image): Uint8Array {
+  const W = 9, H = 8;
+  const small = (img.clone() as Image).resize(W, H);
+  const bmp = small.bitmap as unknown as Uint8Array;
+  const gray = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const r = bmp[i * 4], g = bmp[i * 4 + 1], b = bmp[i * 4 + 2];
+    gray[i] = (r * 299 + g * 587 + b * 114) / 1000 | 0;
+  }
+  const out = new Uint8Array(8);
+  let bit = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W - 1; x++) {
+      const left = gray[y * W + x];
+      const right = gray[y * W + x + 1];
+      if (left > right) out[bit >> 3] |= (1 << (7 - (bit & 7)));
+      bit++;
+    }
+  }
+  return out;
+}
+
+function hamming(a: Uint8Array, b: Uint8Array): number {
+  let d = 0;
+  for (let i = 0; i < a.length; i++) {
+    let x = a[i] ^ b[i];
+    x = x - ((x >> 1) & 0x55);
+    x = (x & 0x33) + ((x >> 2) & 0x33);
+    d += ((x + (x >> 4)) & 0x0F);
+  }
+  return d;
+}
+
+function bytesToHex(a: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < a.length; i++) s += a[i].toString(16).padStart(2, "0");
+  return s;
+}
+
+async function storePhashSecret(admin: any, phash: Uint8Array, secret: string, owner: string) {
+  try {
+    await admin.from("stego_hidden_messages").insert({
+      phash: `\\x${bytesToHex(phash)}`,
+      secret, owner,
+    });
+  } catch (e) {
+    console.error("[messenger] stego phash store failed", e);
+  }
+}
+
+async function lookupBySimilarPhash(admin: any, phash: Uint8Array): Promise<string | null> {
+  try {
+    const { data } = await admin
+      .from("stego_hidden_messages")
+      .select("phash, secret, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (!data?.length) return null;
+    let best: { secret: string; dist: number } | null = null;
+    for (const row of data as any[]) {
+      const raw = row.phash;
+      let bytes: Uint8Array;
+      if (typeof raw === "string") {
+        const hex = raw.startsWith("\\x") ? raw.slice(2) : raw;
+        bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+      } else if (raw instanceof Uint8Array) {
+        bytes = raw;
+      } else continue;
+      if (bytes.length !== phash.length) continue;
+      const d = hamming(bytes, phash);
+      if (!best || d < best.dist) best = { secret: row.secret, dist: d };
+    }
+    // dHash of 64 bits: ≤12 bits difference is a confident match under
+    // Facebook's JPEG re-encode + resize; above that we treat as no match.
+    if (best && best.dist <= 12) return best.secret;
+    return null;
+  } catch (e) {
+    console.error("[messenger] stego phash lookup failed", e);
+    return null;
+  }
+}
 
 function stegoEmbed(bitmap: Uint8Array, payload: Uint8Array): boolean {
   const totalBits = (4 + payload.length) * 8;
@@ -219,6 +307,15 @@ async function stegoHideAndSend(
     await sendAndLog(admin, senderId, "خطأ داخلي أثناء حفظ الصورة.", pageId, userMsgStart);
     return false;
   }
+  // Compression-proof fallback: store the secret keyed by a perceptual hash
+  // of the image we just produced. Even if Facebook re-compresses the image,
+  // the extractor can still recover the message via nearest-hash lookup.
+  try {
+    const phash = computePhash(img);
+    await storePhashSecret(admin, phash, secret, senderId);
+  } catch (e) {
+    console.error("[messenger] stego phash compute failed", e);
+  }
   const { data: signed } = await admin.storage.from("bot-media").createSignedUrl(path, 3600);
   if (!signed?.signedUrl) {
     await sendAndLog(admin, senderId, "خطأ في تجهيز الصورة للإرسال.", pageId, userMsgStart);
@@ -238,7 +335,7 @@ async function stegoHideAndSend(
     }),
   });
   await sendAndLog(admin, senderId,
-    "✅ تم إخفاء الرسالة داخل الصورة.\n\n⚠️ ملاحظة: احفظ الصورة كملف PNG وأرسلها كـ«ملف» (Attachment) وليس كصورة مضغوطة، لأن فيسبوك يضغط الصور المنشورة على المنشورات ويُتلف الرسالة المخفية. لاستخراج الرسالة يكفي إعادة إرسالها للبوت واختيار «استخراج رسالة».",
+    "✅ تم إخفاء الرسالة داخل الصورة.\n\n📌 يمكنك مشاركتها بأي طريقة (نشر، إعادة إرسال، تحميل من فيسبوك). حتى لو ضغطها فيسبوك وأتلف البيانات المدمجة داخل البكسلات، البوت يحتفظ بنسخة احتياطية مرتبطة ببصمة بصرية للصورة، ويستخرج الرسالة عند إعادة إرسال الصورة إليه واختيار «استخراج رسالة».",
     pageId, userMsgStart);
   return true;
 }
@@ -261,18 +358,29 @@ async function stegoExtractAndSend(
     return;
   }
   const bitmap = img.bitmap as unknown as Uint8Array;
+  // 1) Try direct LSB extraction (works only on unmodified PNGs).
   const extracted = stegoExtract(bitmap);
-  if (!extracted || extracted.length < 4) {
-    await sendAndLog(admin, senderId, "لم أجد أي رسالة مخفية في هذه الصورة. تأكّد أنها الصورة الأصلية غير المضغوطة.", pageId, userMsgStart);
-    return;
+  if (extracted && extracted.length >= 4) {
+    const magic = new DataView(extracted.buffer, extracted.byteOffset, 4).getUint32(0, false);
+    if (magic === STEGO_MAGIC) {
+      const text = new TextDecoder().decode(extracted.slice(4));
+      await sendAndLog(admin, senderId, `🔓 الرسالة المخفية:\n\n${text}`, pageId, userMsgStart);
+      return;
+    }
   }
-  const magic = new DataView(extracted.buffer, extracted.byteOffset, 4).getUint32(0, false);
-  if (magic !== STEGO_MAGIC) {
-    await sendAndLog(admin, senderId, "لم أجد أي رسالة مخفية في هذه الصورة. تأكّد أنها الصورة الأصلية غير المضغوطة.", pageId, userMsgStart);
-    return;
+  // 2) Fallback: perceptual-hash lookup. Recovers the message even after
+  // Facebook re-compresses/resizes the image and destroys the LSB payload.
+  try {
+    const phash = computePhash(img);
+    const secret = await lookupBySimilarPhash(admin, phash);
+    if (secret) {
+      await sendAndLog(admin, senderId, `🔓 الرسالة المخفية (استُعيدت من النسخة المضغوطة):\n\n${secret}`, pageId, userMsgStart);
+      return;
+    }
+  } catch (e) {
+    console.error("[messenger] stego phash extract failed", e);
   }
-  const text = new TextDecoder().decode(extracted.slice(4));
-  await sendAndLog(admin, senderId, `🔓 الرسالة المخفية:\n\n${text}`, pageId, userMsgStart);
+  await sendAndLog(admin, senderId, "لم أجد أي رسالة مخفية في هذه الصورة.", pageId, userMsgStart);
 }
 // Bot display name per page. Page 1 (FB_PAGE_ACCESS_TOKEN) => SolveBot GPT,
 // Page 2 (FB_PAGE_ACCESS_TOKEN_2) => BrainBot GPT.
