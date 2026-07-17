@@ -1968,6 +1968,30 @@ async function handleEvent(ev: any, pageId: string | null) {
       );
       return;
     }
+    if (postbackPayload === "MENU_STEGO_HIDE") {
+      await admin.from("stego_sessions").upsert(
+        { facebook_user_id: senderId, state: "await_image_hide", pending_image_path: null },
+        { onConflict: "facebook_user_id" },
+      );
+      await sendAndLog(
+        admin, senderId,
+        "🔐 وضع «إخفاء رسالة سرية» مُفعّل.\n\n1) أرسل الآن الصورة التي تريد إخفاء الرسالة داخلها 🏞️\n2) بعدها اكتب الرسالة السرية ✍️",
+        pageId,
+      );
+      return;
+    }
+    if (postbackPayload === "MENU_STEGO_EXTRACT") {
+      await admin.from("stego_sessions").upsert(
+        { facebook_user_id: senderId, state: "await_image_extract", pending_image_path: null },
+        { onConflict: "facebook_user_id" },
+      );
+      await sendAndLog(
+        admin, senderId,
+        "🔓 وضع «استخراج رسالة سرية» مُفعّل.\nأرسل الآن الصورة التي تحتوي على رسالة مخفية.",
+        pageId,
+      );
+      return;
+    }
     if (postbackPayload.startsWith("BOOK_READ:")) {
       const identifier = postbackPayload.slice("BOOK_READ:".length);
       await handleBookRead(admin, senderId, identifier, pageId);
