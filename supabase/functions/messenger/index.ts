@@ -2690,7 +2690,23 @@ ${lengthInstruction}
 - التزم بالنغمة والطول المحددين أعلاه في كل الردود (إلا الروايات/الأكواد فتتبع طبيعتها).
 - استخدم الذاكرة أعلاه في إجاباتك بشكل طبيعي.`;
 
-  const chatMessages: any[] = [{ role: "system", content: systemPrompt }];
+  // Human status simulation: pass current time so the persona can react like a real person (eating/sleeping/tired).
+  const nowUtc = new Date();
+  const cairoHour = (nowUtc.getUTCHours() + 3) % 24; // Africa/Cairo ~ UTC+3 during use
+  const cairoTimeStr = nowUtc.toLocaleString("ar-EG", { timeZone: "Africa/Cairo", hour12: false });
+  let dayPart = "";
+  if (cairoHour >= 0 && cairoHour < 5) dayPart = "الفجر — أغلب الناس نائمون. تصرف بنعاس شديد.";
+  else if (cairoHour >= 5 && cairoHour < 12) dayPart = "الصباح — نشيط لكن ربما لسه بتفطر.";
+  else if (cairoHour >= 12 && cairoHour < 15) dayPart = "الظهر — وقت الغداء، ممكن تكون بتاكل.";
+  else if (cairoHour >= 15 && cairoHour < 19) dayPart = "بعد الظهر — نشيط.";
+  else if (cairoHour >= 19 && cairoHour < 23) dayPart = "المساء — وقت العشاء والاسترخاء.";
+  else dayPart = "الليل المتأخر — بتحس بالنعاس شوية.";
+  const timeContext = `الوقت الحالي (توقيت القاهرة): ${cairoTimeStr}. ${dayPart}\nاستخدم هذه المعلومة بشكل عفوي ونادر لمحاكاة حياتك البشرية (أكل، نوم، تعب، انشغال) — لا تذكر الساعة حرفياً إلا لو سُئلت، ولا تكرر نفس الجملة.`;
+
+  const chatMessages: any[] = [
+    { role: "system", content: systemPrompt },
+    { role: "system", content: timeContext },
+  ];
 
   const histForCtx = histAsc.slice(0, -1);
   for (const m of histForCtx) {
