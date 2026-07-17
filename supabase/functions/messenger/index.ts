@@ -99,7 +99,15 @@ async function setupPersistentMenuForToken(token: string): Promise<any> {
         composer_input_disabled: false,
         call_to_actions: [
           { type: "postback", title: "✉️ بريد وهمي", payload: "MENU_TEMP_EMAIL" },
-          { type: "postback", title: "🖼️ رفع صورة", payload: "MENU_UPLOAD_PHOTO" },
+          {
+            type: "nested",
+            title: "🖼️ صور",
+            call_to_actions: [
+              { type: "postback", title: "تحليل صورة", payload: "MENU_UPLOAD_PHOTO" },
+              { type: "postback", title: "🔐 إخفاء رسالة", payload: "MENU_STEGO_HIDE" },
+              { type: "postback", title: "🔓 استخراج رسالة", payload: "MENU_STEGO_EXTRACT" },
+            ],
+          },
           { type: "postback", title: "📚 بحث عن كتاب", payload: "MENU_SEARCH_BOOK" },
         ],
       },
